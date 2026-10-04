@@ -1,0 +1,175 @@
+@if (toast()) {
+  <div class="toast" [class.toast-ok]="toast()!.ok" [class.toast-err]="!toast()!.ok">
+    <span>{{ toast()!.ok ? '✅' : '❌' }}</span><span>{{ toast()!.msg }}</span>
+  </div>
+}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Nouvelle <em>Vente</em></h1>
+    <p class="page-sub">Enregistrez une vente et le stock sera mis à jour automatiquement.</p>
+  </div>
+  <button class="btn btn-secondary" type="button" (click)="router.navigate(['/sales'])">← Retour</button>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
+
+  <!-- Main card -->
+  <div>
+    <!-- Header info -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <div class="card-head-icon" style="background:var(--green-l)">🧾</div>
+        <div><div class="card-head-title">Informations de la vente</div></div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Client</label>
+            <select [(ngModel)]="clientId">
+              <option value="">— Anonyme / Sans client —</option>
+              @for (c of clients(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+            </select>
+          </div>
+          <div class="field">
+            <label>Date de vente <span class="req">*</span></label>
+            <input type="date" [(ngModel)]="saleDate">
+          </div>
+          <div class="field">
+            <label>Mode de paiement <span class="req">*</span></label>
+            <select [(ngModel)]="paymentMethod">
+              @for (m of paymentMethods; track m) { <option [value]="m">{{ m }}</option> }
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products table -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-icon" style="background:var(--blue-l)">🛒</div>
+        <div>
+          <div class="card-head-title">Produits vendus</div>
+          <div class="card-head-sub">{{ lines.length }} produit(s) ajouté(s)</div>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <!-- Add product row -->
+        <div class="add-item-row">
+          <div class="field">
+            <label>Produit</label>
+            <select [(ngModel)]="newProductId">
+              <option value="">— Sélectionner —</option>
+              @for (p of availableProducts; track p.id) {
+                <option [value]="p.id">{{ p.name }} (stock: {{ p.quantity }})</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Prix (auto)</label>
+            <input type="number" [value]="selectedProduct?.salePrice ?? 0" readonly
+              style="background:var(--bg);color:var(--ink3)">
+          </div>
+          <div class="field">
+            <label>Quantité</label>
+            <input type="number" [(ngModel)]="newQty" min="1"
+              [max]="selectedProduct?.quantity ?? 999">
+          </div>
+          <div class="field">
+            <label>Sous-total</label>
+            <input type="number"
+              [value]="selectedProduct ? (selectedProduct.salePrice * newQty | number:'1.2-2') : 0"
+              readonly style="background:var(--bg);color:var(--ink3);font-weight:700">
+          </div>
+          <div class="field" style="justify-content:flex-end">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" type="button" (click)="addLine()"
+              [disabled]="!newProductId || newQty < 1">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Ajouter
+            </button>
+          </div>
+        </div>
+
+        <!-- Lines table -->
+        @if (lines.length > 0) {
+          <table class="items-table" style="margin-top:16px">
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Prix unitaire</th>
+                <th>Quantité</th>
+                <th>Sous-total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (line of lines; track line.productId; let i = $index) {
+                <tr>
+                  <td><strong>{{ line.productName }}</strong></td>
+                  <td class="price">{{ line.unitPrice | number:'1.2-2' }} DH</td>
+                  <td>
+                    <input type="number" [value]="line.quantity" min="1" [max]="line.maxQty"
+                      (change)="updateQty(i, +$any($event.target).value)"
+                      style="width:80px;padding:6px 10px;text-align:center">
+                  </td>
+                  <td class="price" style="color:var(--green);font-size:15px">{{ line.subTotal | number:'1.2-2' }} DH</td>
+                  <td>
+                    <button class="btn btn-danger btn-xs" (click)="removeLine(i)" type="button">✕</button>
+                  </td>
+                </tr>
+              }
+              <tr class="items-total-row">
+                <td colspan="3" style="text-align:right;color:var(--ink2)">TOTAL GÉNÉRAL</td>
+                <td style="color:var(--green);font-size:18px;font-family:'Syne',sans-serif">{{ total() | number:'1.2-2' }} DH</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        } @else {
+          <div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">
+            <div style="font-size:32px;margin-bottom:8px">🛒</div>
+            Aucun produit ajouté — utilisez le formulaire ci-dessus.
+          </div>
+        }
+      </div>
+
+      <div class="card-foot">
+        <button type="button" class="btn btn-primary" (click)="submit()"
+          [disabled]="saving() || !canSubmit()">
+          @if (saving()) { <div class="spinner-sm"></div> Enregistrement… }
+          @else { ✓ Valider la vente }
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="router.navigate(['/sales'])">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary sidebar -->
+  <div class="side-col">
+    <div class="card">
+      <div class="side-title">📊 Récapitulatif</div>
+      <div class="side-body">
+        <div class="info-row"><span class="ik">Client</span><span class="iv">{{ selectedClientName }}</span></div>
+        <div class="info-row"><span class="ik">Date</span><span class="iv">{{ saleDate | date:'dd/MM/yyyy' }}</span></div>
+        <div class="info-row"><span class="ik">Paiement</span><span class="iv">{{ paymentMethod }}</span></div>
+        <div class="info-row"><span class="ik">Nb produits</span><span class="iv">{{ lines.length }}</span></div>
+        <div class="info-row" style="border-top:2px solid var(--border2);margin-top:4px;padding-top:10px">
+          <span class="ik" style="font-weight:700">TOTAL</span>
+          <span class="iv" style="font-size:18px;color:var(--green);font-family:'Syne',sans-serif">{{ total() | number:'1.2-2' }} DH</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="side-title">ℹ️ Information</div>
+      <div class="side-body" style="font-size:12.5px;line-height:1.8;color:var(--ink2)">
+        <p>• Le <strong>stock est automatiquement mis à jour</strong> lors de la validation.</p>
+        <p style="margin-top:8px">• Seuls les produits avec un <strong>stock > 0</strong> sont disponibles.</p>
+        <p style="margin-top:8px">• Pour annuler une vente, <strong>supprimez-la</strong> depuis la liste.</p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,108 @@
+@if (toast()) {
+  <div class="toast" [class.toast-ok]="toast()!.ok" [class.toast-err]="!toast()!.ok">
+    <span>{{ toast()!.ok ? '✅' : '❌' }}</span><span>{{ toast()!.msg }}</span>
+  </div>
+}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Gestion des <em>Produits</em></h1>
+    <p class="page-sub">{{ total }} produit(s) dans le catalogue</p>
+  </div>
+  <button class="btn btn-primary" (click)="router.navigate(['/products/create'])">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    Nouveau produit
+  </button>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card s-blue"><div class="stat-lbl">Total</div><div class="stat-val">{{ total }}</div><div class="stat-sub">produits</div></div>
+  <div class="stat-card s-amber"><div class="stat-lbl">Stock faible</div><div class="stat-val">{{ lowStock }}</div><div class="stat-sub">≤ 5 unités</div></div>
+  <div class="stat-card s-red"><div class="stat-lbl">Rupture</div><div class="stat-val">{{ outOfStock }}</div><div class="stat-sub">quantité = 0</div></div>
+  <div class="stat-card s-green"><div class="stat-lbl">Valeur stock</div><div class="stat-val">{{ totalValue }}</div><div class="stat-sub">prix vente × qté</div></div>
+</div>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.35-4.35"/></svg>
+    <input type="text" placeholder="Rechercher un produit…" [(ngModel)]="search">
+  </div>
+  <select [(ngModel)]="filterCat" style="max-width:180px">
+    <option value="">Toutes catégories</option>
+    @for (c of categories(); track c) { <option [value]="c">{{ c }}</option> }
+  </select>
+</div>
+
+<div class="table-card">
+  @if (loading()) {
+    <div class="state-box"><div class="spinner"></div></div>
+  } @else if (filtered().length === 0) {
+    <div class="state-box">
+      <div class="state-icon">📦</div>
+      <p class="state-title">Aucun produit trouvé</p>
+      <p class="state-desc">@if (search() || filterCat()) { Modifiez les filtres. } @else { Ajoutez votre premier produit. }</p>
+      @if (!search() && !filterCat()) { <button class="btn btn-primary" (click)="router.navigate(['/products/create'])">Ajouter un produit</button> }
+    </div>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Produit</th><th>Catégorie</th><th>Prix achat</th><th>Prix vente</th>
+          <th>Stock</th><th>Date ajout</th><th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of filtered(); track p.id) {
+          <tr>
+            <td>
+              <div class="cell-product">
+                <div class="thumb">📦</div>
+                <div><div class="cell-name">{{ p.name }}</div><div class="cell-sub">#{{ p.id.toString().padStart(4,'0') }}</div></div>
+              </div>
+            </td>
+            <td><span class="chip">{{ p.category }}</span></td>
+            <td class="price">{{ p.purchasePrice | number:'1.2-2' }} DH</td>
+            <td class="price">{{ p.salePrice | number:'1.2-2' }} DH</td>
+            <td>
+              <span [class]="qtyBadge(p.quantity)">
+                <span class="bdot"></span>{{ p.quantity }} unité(s)
+              </span>
+            </td>
+            <td style="color:var(--ink3);font-size:12px">{{ p.createdAt | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <div class="cell-actions">
+                <button class="btn btn-edit btn-sm" (click)="router.navigate(['/products/edit', p.id])">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  Modifier
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="delTarget.set(p)">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7M4 7h16"/></svg>
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <span class="footer-info"><strong>{{ filtered().length }}</strong> résultat(s) sur <strong>{{ total }}</strong></span>
+    </div>
+  }
+</div>
+
+@if (delTarget()) {
+  <div class="overlay" (click)="delTarget.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-body">
+        <div class="modal-ring">🗑️</div>
+        <div class="modal-title">Supprimer le produit ?</div>
+        <div class="modal-desc">Cette action est <strong>irréversible</strong>.</div>
+      </div>
+      <div class="modal-info">📦 {{ delTarget()!.name }}</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="delTarget.set(null)">Annuler</button>
+        <button class="btn btn-confirm-delete" (click)="confirmDelete()">Oui, supprimer</button>
+      </div>
+    </div>
+  </div>
+}

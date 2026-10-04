@@ -1,0 +1,97 @@
+@if (toast()) {
+  <div class="toast" [class.toast-ok]="toast()!.ok" [class.toast-err]="!toast()!.ok">
+    <span>{{ toast()!.ok ? '✅' : '❌' }}</span><span>{{ toast()!.msg }}</span>
+  </div>
+}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">@if (isEdit()) { Modifier le <em>Produit</em> } @else { Nouveau <em>Produit</em> }</h1>
+    <p class="page-sub">@if (isEdit()) { Modifiez les informations. } @else { Ajoutez un produit au catalogue. }</p>
+  </div>
+  <button class="btn btn-secondary" type="button" (click)="router.navigate(['/products'])">← Retour</button>
+</div>
+
+@if (loading()) {
+  <div class="state-box"><div class="spinner"></div></div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="form-layout">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-icon" [style.background]="isEdit() ? 'var(--amber-l)' : 'var(--green-l)'">{{ isEdit() ? '✏️' : '📦' }}</div>
+          <div>
+            <div class="card-head-title">{{ isEdit() ? 'Modifier les informations' : 'Informations du produit' }}</div>
+            <div class="card-head-sub">Les champs * sont obligatoires</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>Nom du produit <span class="req">*</span></label>
+              <input type="text" formControlName="name" placeholder="Ex : Samsung Galaxy S24" [class.is-invalid]="inv('name')">
+              @if (err('name','required'))    { <span class="error">⚠ Obligatoire</span> }
+              @else if (err('name','minlength')) { <span class="error">⚠ Minimum 2 caractères</span> }
+            </div>
+            <div class="field">
+              <label>Catégorie <span class="req">*</span></label>
+              <select formControlName="category" [class.is-invalid]="inv('category')">
+                <option value="">— Choisir —</option>
+                @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+              </select>
+              @if (err('category','required')) { <span class="error">⚠ Obligatoire</span> }
+            </div>
+            <div class="field">
+              <label>Prix d'achat (DH) <span class="req">*</span></label>
+              <input type="number" formControlName="purchasePrice" placeholder="0.00" min="0" step="0.01" [class.is-invalid]="inv('purchasePrice')">
+              @if (err('purchasePrice','required')) { <span class="error">⚠ Obligatoire</span> }
+              @else if (err('purchasePrice','min')) { <span class="error">⚠ Doit être ≥ 0</span> }
+            </div>
+            <div class="field">
+              <label>Prix de vente (DH) <span class="req">*</span></label>
+              <input type="number" formControlName="salePrice" placeholder="0.00" min="0.01" step="0.01" [class.is-invalid]="inv('salePrice')">
+              @if (err('salePrice','required')) { <span class="error">⚠ Obligatoire</span> }
+              @else if (err('salePrice','min')) { <span class="error">⚠ Doit être > 0</span> }
+            </div>
+            <div class="field">
+              <label>Quantité initiale <span class="req">*</span></label>
+              <input type="number" formControlName="quantity" placeholder="0" min="0" [class.is-invalid]="inv('quantity')">
+              @if (err('quantity','required')) { <span class="error">⚠ Obligatoire</span> }
+              @else if (err('quantity','min')) { <span class="error">⚠ Doit être ≥ 0</span> }
+            </div>
+            <div class="field">
+              <label>URL Image</label>
+              <input type="text" formControlName="imageUrl" placeholder="https://…">
+              <span class="hint">Optionnel</span>
+            </div>
+            <div class="field full-col">
+              <label>Description</label>
+              <textarea formControlName="description" placeholder="Caractéristiques, dimensions…"></textarea>
+              <span class="hint">Optionnel — 500 caractères max</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-foot">
+          <button type="submit" class="btn btn-primary" [disabled]="saving()"
+            [style.background]="isEdit() ? 'linear-gradient(135deg,#d97706,#f59e0b)' : ''"
+            [style.box-shadow]="isEdit() ? '0 3px 10px rgba(217,119,6,.3)' : ''">
+            @if (saving()) { <div class="spinner-sm"></div> Enregistrement… }
+            @else { ✓ {{ isEdit() ? 'Enregistrer les modifications' : 'Créer le produit' }} }
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="router.navigate(['/products'])">Annuler</button>
+        </div>
+      </div>
+
+      <div class="side-col">
+        <div class="card">
+          <div class="side-title">💡 Conseils</div>
+          <div class="side-body" style="font-size:12.5px;line-height:1.8;color:var(--ink2)">
+            <p>• Le <strong>prix d'achat</strong> est votre coût fournisseur.</p>
+            <p style="margin-top:8px">• Le <strong>prix de vente</strong> doit être supérieur au prix d'achat pour dégager une marge.</p>
+            <p style="margin-top:8px">• La <strong>quantité</strong> représente le stock initial réel.</p>
+            <p style="margin-top:8px">• Le stock sera <strong>automatiquement décrémenté</strong> à chaque vente.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+}

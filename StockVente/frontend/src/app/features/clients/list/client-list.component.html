@@ -1,0 +1,84 @@
+@if (toast()) {
+  <div class="toast" [class.toast-ok]="toast()!.ok" [class.toast-err]="!toast()!.ok">
+    <span>{{ toast()!.ok ? '✅' : '❌' }}</span><span>{{ toast()!.msg }}</span>
+  </div>
+}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Gestion des <em>Clients</em></h1>
+    <p class="page-sub">{{ clients().length }} client(s) enregistré(s)</p>
+  </div>
+  <button class="btn btn-primary" (click)="router.navigate(['/clients/create'])">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    Nouveau client
+  </button>
+</div>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.35-4.35"/></svg>
+    <input type="text" placeholder="Rechercher un client…" [(ngModel)]="search">
+  </div>
+</div>
+
+<div class="table-card">
+  @if (loading()) {
+    <div class="state-box"><div class="spinner"></div></div>
+  } @else if (filtered().length === 0) {
+    <div class="state-box">
+      <div class="state-icon">👤</div>
+      <p class="state-title">Aucun client trouvé</p>
+      <p class="state-desc">@if (search) { Modifiez la recherche. } @else { Ajoutez votre premier client. }</p>
+      @if (!search) { <button class="btn btn-primary" (click)="router.navigate(['/clients/create'])">Ajouter un client</button> }
+    </div>
+  } @else {
+    <table>
+      <thead>
+        <tr><th>Nom</th><th>Téléphone</th><th>Email</th><th>Adresse</th><th style="text-align:right">Actions</th></tr>
+      </thead>
+      <tbody>
+        @for (c of filtered(); track c.id) {
+          <tr>
+            <td>
+              <div class="cell-product">
+                <div class="thumb" style="font-size:14px;background:var(--indigo-l);border-color:#c7d2fe;color:var(--indigo);font-weight:700">
+                  {{ c.name.charAt(0).toUpperCase() }}
+                </div>
+                <div><div class="cell-name">{{ c.name }}</div><div class="cell-sub">#{{ c.id.toString().padStart(4,'0') }}</div></div>
+              </div>
+            </td>
+            <td>{{ c.phone || '—' }}</td>
+            <td>{{ c.email || '—' }}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.address || '—' }}</td>
+            <td>
+              <div class="cell-actions">
+                <button class="btn btn-edit btn-sm" (click)="router.navigate(['/clients/edit', c.id])">Modifier</button>
+                <button class="btn btn-danger btn-sm" (click)="delTarget.set(c)">Supprimer</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <span class="footer-info"><strong>{{ filtered().length }}</strong> client(s)</span>
+    </div>
+  }
+</div>
+
+@if (delTarget()) {
+  <div class="overlay" (click)="delTarget.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-body">
+        <div class="modal-ring">🗑️</div>
+        <div class="modal-title">Supprimer ce client ?</div>
+        <div class="modal-desc">Cette action est <strong>irréversible</strong>.</div>
+      </div>
+      <div class="modal-info">👤 {{ delTarget()!.name }}</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="delTarget.set(null)">Annuler</button>
+        <button class="btn btn-confirm-delete" (click)="confirmDelete()">Oui, supprimer</button>
+      </div>
+    </div>
+  </div>
+}

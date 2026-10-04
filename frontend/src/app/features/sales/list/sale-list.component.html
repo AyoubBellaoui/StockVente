@@ -1,0 +1,93 @@
+@if (toast()) {
+  <div class="toast" [class.toast-ok]="toast()!.ok" [class.toast-err]="!toast()!.ok">
+    <span>{{ toast()!.ok ? '✅' : '❌' }}</span><span>{{ toast()!.msg }}</span>
+  </div>
+}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Gestion des <em>Ventes</em></h1>
+    <p class="page-sub">{{ total }} vente(s) enregistrée(s)</p>
+  </div>
+  <button class="btn btn-primary" (click)="router.navigate(['/sales/create'])">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    Nouvelle vente
+  </button>
+</div>
+
+<div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
+  <div class="stat-card s-blue"><div class="stat-lbl">Total ventes</div><div class="stat-val">{{ total }}</div><div class="stat-sub">commandes traitées</div></div>
+  <div class="stat-card s-green"><div class="stat-lbl">Chiffre d'affaires</div><div class="stat-val">{{ revenue }}</div><div class="stat-sub">total encaissé</div></div>
+</div>
+
+<div class="toolbar">
+  <div style="display:flex;align-items:center;gap:6px">
+    <label style="font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px">Filtrer par date</label>
+    <input type="date" [(ngModel)]="filterDate" style="width:auto;max-width:180px">
+    @if (filterDate()) { <button class="btn btn-secondary btn-sm" (click)="filterDate.set('')">✕ Effacer</button> }
+  </div>
+</div>
+
+<div class="table-card">
+  @if (loading()) {
+    <div class="state-box"><div class="spinner"></div></div>
+  } @else if (filtered().length === 0) {
+    <div class="state-box">
+      <div class="state-icon">🧾</div>
+      <p class="state-title">Aucune vente trouvée</p>
+      <p class="state-desc">@if (filterDate()) { Aucune vente à cette date. } @else { Commencez par créer une vente. }</p>
+      @if (!filterDate()) { <button class="btn btn-primary" (click)="router.navigate(['/sales/create'])">Nouvelle vente</button> }
+    </div>
+  } @else {
+    <table>
+      <thead>
+        <tr><th>#</th><th>Client</th><th>Date</th><th>Mode paiement</th><th>Total</th><th style="text-align:right">Actions</th></tr>
+      </thead>
+      <tbody>
+        @for (s of filtered(); track s.id) {
+          <tr>
+            <td><span style="font-family:monospace;color:var(--ink3)">#{{ s.id.toString().padStart(4,'0') }}</span></td>
+            <td><strong>{{ s.clientName || '— Anonyme —' }}</strong></td>
+            <td style="color:var(--ink2)">{{ s.saleDate | date:'dd/MM/yyyy' }}</td>
+            <td><span [class]="paymentClass(s.paymentMethod)"><span class="bdot"></span>{{ s.paymentMethod }}</span></td>
+            <td class="price">{{ s.total | number:'1.2-2' }} DH</td>
+            <td>
+              <div class="cell-actions">
+                <button class="btn btn-view btn-sm" (click)="router.navigate(['/sales', s.id])">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                  Détail
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="delTarget.set(s)">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7M4 7h16"/></svg>
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <span class="footer-info"><strong>{{ filtered().length }}</strong> vente(s) affichée(s)</span>
+    </div>
+  }
+</div>
+
+@if (delTarget()) {
+  <div class="overlay" (click)="delTarget.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-body">
+        <div class="modal-ring">⚠️</div>
+        <div class="modal-title">Supprimer cette vente ?</div>
+        <div class="modal-desc">
+          Le stock des produits vendus sera <strong>remis à jour automatiquement</strong>.<br>
+          Cette action est irréversible.
+        </div>
+      </div>
+      <div class="modal-info">🧾 Vente #{{ delTarget()!.id.toString().padStart(4,'0') }} — {{ delTarget()!.total | number:'1.2-2' }} DH</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="delTarget.set(null)">Annuler</button>
+        <button class="btn btn-confirm-delete" (click)="confirmDelete()">Oui, supprimer</button>
+      </div>
+    </div>
+  </div>
+}
